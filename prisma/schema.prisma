@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  role       String   @default("MEMBER")
+  fullName   String?
+  password   String?  // hashed; only used for local auth fallback
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  signatures Signature[]
+  generators Generator[]
+}
+
+model Template {
+  id          String @id @default(uuid())
+  name        String
+  category    String @default("basic")
+  thumbnail   String?
+  html        String
+  isPro       Boolean @default(true)
+  sortOrder   Int @default(0)
+}
+
+model Signature {
+  id              String   @id @default(uuid())
+  name            String
+  status          String   @default("DRAFT")
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  generatorId     String?
+  generator       Generator? @relation(fields: [generatorId], references: [id])
+  data            String   // JSON stringified payload
+  html            String
+  plainText       String
+  previewImageUrl String?
+  layoutId        String?
+  installLinks    InstallLink[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Generator {
+  id          String   @id @default(uuid())
+  name        String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  templateId  String
+  data        String   // JSON stringified
+  signatures  Signature[]
+  publicToken String   @unique @default(uuid())
+  createdAt   DateTime @default(now())
+}
+
+model InstallLink {
+  id             String   @id @default(uuid())
+  token          String   @unique
+  signatureId    String
+  signature      Signature @relation(fields: [signatureId], references: [id], onDelete: Cascade)
+  recipientEmail String
+  sentAt         DateTime @default(now())
+  openedAt       DateTime?
+  installedAt    DateTime?
+  installStatus  String   @default("PENDING")
+  graphUserId    String?
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ImageAsset {
+  id        String   @id @default(uuid())
+  name      String
+  url       String
+  type      String   // LOGO | AVATAR | BANNER | BADGE
+  userId    String
+  createdAt DateTime @default(now())
+}
